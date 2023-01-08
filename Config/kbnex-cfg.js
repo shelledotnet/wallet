@@ -26,3 +26,9 @@ module.exports = {
     pool: { min: 0, max: 7 },
   },
 };
+
+// await oracledb.getConnection({
+//   user: "demonode",
+//   password: "XXXX",
+//   connectionString: "localhost/xepdb1",
+// });

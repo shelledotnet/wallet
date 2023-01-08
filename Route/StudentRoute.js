@@ -5,6 +5,7 @@ const {
   getAllStudent,
   createStudent,
   createStudent_raw,
+  getTodoId_Raw,
   getStudentById,
   getAllStudent_Raw,
   getStudentById_Raw,
@@ -86,6 +87,17 @@ router.get(
       .withMessage("id should be number"),
   ],
   getStudentById
+);
+router.get(
+  "/storePro/:id",
+  [
+    check("id")
+      .exists()
+      .withMessage("id required")
+      .notEmpty()
+      .withMessage("id is empty"),
+  ],
+  getTodoId_Raw
 );
 router.delete(
   "/:id",

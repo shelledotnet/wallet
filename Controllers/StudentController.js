@@ -330,11 +330,9 @@ let createStudent_raw = async (req, res) => {
     //it will return both the field and actual raw data
     if (created.affectedRows === 1) {
       audEvents(
-        `Response:Header:${serialize(
-          res.headers
-        )}\t ${serialize(result)}\tstudent created successfully ${
-          StatusCodes.CREATED
-        }`,
+        `Response:Header:${serialize(res.headers)}\tBody:${serialize(
+          result
+        )}\tstudent created successfully ${StatusCodes.CREATED}`,
         "Log",
         GUID
       );
@@ -373,6 +371,7 @@ let createStudent_raw = async (req, res) => {
     });
   }
 };
+
 let getStudentById = async (req, res) => {
   const guid = uuid();
   const { id } = req.params;
@@ -523,6 +522,83 @@ let getStudentById_Raw = async (req, res) => {
     });
   }
 };
+
+let getTodoId_Raw = async (req, res) => {
+  const guid = uuid();
+  const { id } = req.params;
+  let boolOutput = id.toLowerCase() == 'true' ? true : false; //ternary operator returns boolean
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    audEvents(
+      `BAD_REQUEST:${req.method}\t${serialize(errors)}\t /api/v1/students${
+        req.url
+      }`,
+      "Log",
+      guid
+    );
+
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      errors: errors.array(),
+      code: StatusCodes.BAD_REQUEST,
+      success: false,
+      ref: guid,
+    });
+  }
+  try {
+    audEvents(
+      `Request:${req.method}\t${serialize(req.params)}\t /api/v1/students${
+        req.url
+      }`,
+      "Log",
+      guid
+    );
+
+    //below uses bindings which guide against sql injection attack wiht storedProc
+    const [result, _] = await knex.raw("CALL new_filterTodos(?)", [boolOutput]);
+    console.log(result);
+    if (result.length !== 0) {
+      audEvents(
+        `Response:${req.method}\t id find was successfull-${serialize(
+          result
+        )}\t url:/api/v1/students${req.url}}`,
+        "Log",
+        guid
+      );
+      return res.status(StatusCodes.OK).json({
+        data: result[0],
+        code: StatusCodes.OK,
+        success: true,
+        ref: guid,
+      });
+    }
+    audEvents(
+      `NOT_FOUND:${req.method}\t id ${id} doesn't exist\t /api/v1/students${req.url})}`,
+      "Log",
+      guid
+    );
+    return res.status(StatusCodes.NOT_FOUND).json({
+      data: `id ${id} doesn't exist`,
+      code: StatusCodes.NOT_FOUND,
+      success: false,
+      ref: guid,
+    });
+  } catch (err) {
+    audEvents(
+      `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
+        err.message
+      )}\t /api/v1/students${req.url})}`,
+      "Log",
+      guid
+    );
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      data: "error completing request",
+      code: StatusCodes.INTERNAL_SERVER_ERROR,
+      success: false,
+      ref: guid,
+    });
+  }
+};
+
 let deleteStudentById_Raw = async (req, res) => {
   const guid = uuid();
   const { id } = req.params;
@@ -606,8 +682,6 @@ let deleteStudentById_Raw = async (req, res) => {
   }
 };
 
-
-
 const sendMail=async (req,res)=>{
   const guid = uuid();
   const transporter = nodemailer.createTransport({
@@ -648,12 +722,12 @@ const sendMail=async (req,res)=>{
 };
 
 
-
 //#endregion
 
 module.exports = {
   getAllStudent,
   getAllStudent_Raw,
+  getTodoId_Raw,
   createStudent,
   createStudent_raw,
   getStudentById,
@@ -662,8 +736,28 @@ module.exports = {
   sendMail,
 };
 
-
 //#region JS Practice
+let words = "Franklin Roosevelt Roosevelt kemi Roosevelt";
+let chematch = /(\w+)\1\1/gi;
+let replceMatch = /roosevelt/gi;
+//console.log(words.replace(replceMatch,"President"));
+//console.log('Node'.padEnd(8,'*'));
+const fruitDrink = ["Banana", "Orange", "Apple", "Mango"];
+fruitDrink.sort()
+//console.log(fruitDrink.reverse());
+const points = [40, 100, 1, 5, 25, 10];
+//console.log(Math.min.apply(null,points));
+const persons = {"firstname":"seyi"};
+//console.log(persons["firstname"]);
+let password = "821g9898982&";
+let checkPass = /(\w{3,6})(\d{1})(\W{1})/; //3 to 6 alpahnymeric characters , at least 1 number , atleast 1 non alphanumeric
+//console.log(checkPass.test(password));
+const fruits = ["Banana", "Orange", "Apple", "Mango"];
+let fruit = "";
+for(let i = 0 ; i < fruits.length ; i++){
+   fruit += fruits[i] + ",";
+}
+//console.log(fruit);
 let quote = "aabes blind mice. deh";
 let biginWith = /^abe/i;
 let endWith = /deh$/i;
@@ -705,10 +799,19 @@ const dates = new Date();
 //console.log(dates.getDate().toLocaleString());
 //console.log(123e-5);
 //console.log(myFunction(4, 3)); // Function is called, return value will end up in x
-
 function myFunction(a, b) {
   return a * b; // Function returns the product of a and b
 }
-console.log("loving you\n".repeat(5));
+let texts = "Apple";
+const textsRegex = /ap{2}le/i;
+//console.log(textsRegex.test(texts));
+let numb = 5;
+let text = numb.toString();
+//console.log(text.padEnd(4, "0"));
+//console.log(texts[9]);
+// console.log(text.slice(-12));
+// console.log(text.substring(7, 13));
+// console.log(text.replace(/apple/gi,'mango'));
+//console.log("loving you\n".repeat(5));
 //#endregion
  
