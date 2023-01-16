@@ -309,18 +309,21 @@ let createStudent_raw = async (req, res) => {
       "Log",
       GUID
     );
-    let d = new Date();
-    let yr = d.getFullYear();
-    let mm = d.getMonth() + 1; //month in javascript start from o index
-    let dd = d.getDate(); // this return number of day in the month
-    let dateCreated = `${yr}-${mm}-${dd}`;
+    function dateCreated(){
+      let d = new Date();
+      let yr = d.getFullYear();
+      let mm = d.getMonth() + 1; //month in javascript start from o index
+      let dd = d.getDate(); // this return number of day in the month
+      return `${yr}-${mm}-${dd}`;
+    }
+    
     const result = await knex.raw(
       `INSERT INTO tbl_students (title,band,venue,price,dateCreated) VALUES(
               '${title}',
               '${band}',
               '${venue}',
               '${price}',
-              '${dateCreated}'
+              '${dateCreated()}'
             )`
     );
     console.log(result);
@@ -654,17 +657,19 @@ let deleteStudentById_Raw = async (req, res) => {
         ref: guid,
       });
     }
-    audEvents(
-      `NOT_FOUND:${req.method}\t id ${id} doesn't exist\t /api/v1/students${req.url})}`,
-      "Log",
-      guid
-    );
-    return res.status(StatusCodes.NOT_FOUND).json({
-      data: `id ${id} doesn't exist`,
-      code: StatusCodes.NOT_FOUND,
-      success: false,
-      ref: guid,
-    });
+    else if (deleted.affectedRows === 0) {
+      audEvents(
+        `NOT_FOUND:${req.method}\t id ${id} doesn't exist\t /api/v1/students${req.url})}`,
+        "Log",
+        guid
+      );
+      return res.status(StatusCodes.NOT_FOUND).json({
+        data: `id ${id} doesn't exist`,
+        code: StatusCodes.NOT_FOUND,
+        success: false,
+        ref: guid,
+      });
+    }
   } catch (err) {
     audEvents(
       `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
@@ -737,6 +742,20 @@ module.exports = {
 };
 
 //#region JS Practice
+const dns = require('dns');
+const os = require('os');
+//console.log(os.hostname());
+//console.log(os.userInfo().username);
+//setInterval(function(){console.log('loving you fatimah')},1000)
+dns.lookup('pluralsight.com',(err,address)=>{
+  if(err){
+    //console.log(err);
+  }else{
+    //console.log(address);
+  }
+  
+});
+
 let words = "Franklin Roosevelt Roosevelt kemi Roosevelt";
 let chematch = /(\w+)\1\1/gi;
 let replceMatch = /roosevelt/gi;

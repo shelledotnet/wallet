@@ -15,26 +15,26 @@ const serialize = require("serialize-javascript");
 exports.getAllPosts = async (req, res, next) => {
    const guid = uuid();
    try {
-  const [records, _]=  await Post.FindAll();
-  //using array distructure to pull out first array
-  //this method has promise we need await operator here 
-  //it will return both the field and actual raw data
-  console.log(records)
-     if(records.length !== 0){
-      audEvents(
-        `Response:${req.method}\t${serialize(records)}\t /api/v1/feeds${
-          req.url
-        }`,
-        "Log",
-        guid
-      );
-      return res.status(StatusCodes.OK).json({
-        count: records.length,
-        data: records.length > 1 ? records : records[0],
-        code: StatusCodes.OK,
-        success: true,
-        ref: guid,
-      });
+     const [records, _] = await Post.FindAll(); // the return type is promise (reject/resolve)
+     //using array distructure to pull out first array
+     //this method has promise we need await operator here
+     //it will return both the field and actual raw data
+     console.log(records);
+     if (records.length !== 0) {
+       audEvents(
+         `Response:${req.method}\t${serialize(records)}\t /api/v1/feeds${
+           req.url
+         }`,
+         "Log",
+         guid
+       );
+       return res.status(StatusCodes.OK).json({
+         count: records.length,
+         data: records.length > 1 ? records : records[0],
+         code: StatusCodes.OK,
+         success: true,
+         ref: guid,
+       });
      }
      audEvents(
        `NOT_FOUND:${req.method}\t records doesn't exist\t /api/v1/feeds${req.url})}`,
@@ -164,7 +164,7 @@ exports.getPostById = async (req, res, next) => {
        "Log",
        guid
      );
-     var [result, _] = await Post.FindById(id);
+     var [result, _] = await Post.FindById(id); // the return type is promise (reject/resolve)
      //using array distructure to pull out first array
      //this function is a promise that nede await operator
      //it will return both the field and actual raw data
