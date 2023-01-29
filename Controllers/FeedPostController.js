@@ -17,7 +17,7 @@ exports.getAllPosts = async (req, res, next) => {
    try {
      const [records, _] = await Post.FindAll(); // the return type is promise (reject/resolve)
      //using array distructure to pull out first array
-     //this method has promise we need await operator here
+     //this method has promise we need async/await operator here to consume the promise
      //it will return both the field and actual raw data
      console.log(records);
      if (records.length !== 0) {

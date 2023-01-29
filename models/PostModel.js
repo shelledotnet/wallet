@@ -1,5 +1,7 @@
 const db=require('../Config/db');
 
+//this are custome promise functions created by me.. we now consume this promise uing 
+//async/await syntax
 class Post {
   constructor(title, body) {
     this.title = title;

@@ -142,9 +142,12 @@ let getAllStudent_Raw = async (req, res) => {
 
     const [users, _] = await knex.raw("select distinct band ,  venue from tbl_students");
     //using array distructure to pull out first array
-    //this method has promise we need await operator here
+    //node is event driven most of the function u will be dealing wiht return promises and we have to consume them using promise syntax
+    //.then() and .catch() however a more better way of consuming this promises is using async/await syntax this make your code easier and readable
+    //this method has promise we use a modern promise key word await operator  here
+    //promise has 2 agument reject() and resolve()
     //it will return both the field and actual raw data
-    console.log(users);
+    console.log(_);
     
     if (users.length !== 0) {
      // Object.freeze(users); 
@@ -726,6 +729,32 @@ const sendMail=async (req,res)=>{
   });
 };
 
+let fetchApi = async (req, res) => {
+  const guid = uuid();
+  try {
+  
+    return res.status(StatusCodes.NOT_FOUND).json({
+      data: "student doesn't exist",
+      code: StatusCodes.NOT_FOUND,
+      success: false,
+      ref: guid,
+    });
+  } catch (err) {
+    audEvents(
+      `Error:${req.method}\t${serialize(err.message)}\t /api/v1/students${
+        req.url
+      }`,
+      "Log",
+      guid
+    );
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      data: `issue completing request ${err.message}`,
+      code: StatusCodes.INTERNAL_SERVER_ERROR,
+      success: false,
+      ref: guid,
+    });
+  }
+};
 
 //#endregion
 
