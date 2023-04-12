@@ -12,6 +12,11 @@ const now  =date.addHours(new Date(),1);
 const audEvents = require("../middleware/auditLogs");
 const serialize = require("serialize-javascript");
 const { roundToNearestMinutes } = require("date-fns");
+const {HTTP_STATUS_CODE,HTTP_STATUS_DESCRIPTION} = require('../Global');
+const fetch = require("node-fetch"); 
+const fs = require("fs");
+const fsPromises = require("fs").promises;
+const path = require("path");
 //#endregion
 //#region ActionMethod
 // const register=async(req,res)=>{
@@ -104,7 +109,7 @@ let getAllStudent = async (req, res) => {
          ref: guid,
        });
      }
-     audEvents(
+     await audEvents(
        `NOT_FOUND:${req.method}\t records doesn't exist\t /api/v1${req.url})}`,
        "Log",
        guid
@@ -116,13 +121,13 @@ let getAllStudent = async (req, res) => {
        ref: guid,
      });
    } catch (err) {
-     audEvents(
-       `Error:${req.method}\t${serialize(err.message)}\t /api/v1/students${
-         req.url
-       }`,
-       "Log",
-       guid
-     );
+    await audEvents(
+      `Error:${req.method}\t${serialize(err.message)}\t /api/v1/students${
+        req.url
+      }`,
+      "Log",
+      guid
+    );
      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
        data: err.message,
        code: StatusCodes.INTERNAL_SERVER_ERROR,
@@ -171,11 +176,11 @@ let getAllStudent_Raw = async (req, res) => {
         ref: guid,
       });
     }
-    audEvents(
-      `NOT_FOUND:${req.method}\t records doesn't exist\t /api/v1${req.url})}`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `NOT_FOUND:${req.method}\t records doesn't exist\t /api/v1${req.url})}`,
+     "Log",
+     guid
+   );
     return res.status(StatusCodes.NOT_FOUND).json({
       data: "student doesn't exist",
       code: StatusCodes.NOT_FOUND,
@@ -183,13 +188,13 @@ let getAllStudent_Raw = async (req, res) => {
       ref: guid,
     });
   } catch (err) {
-    audEvents(
-      `Error:${req.method}\t${serialize(err.message)}\t /api/v1/students${
-        req.url
-      }`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `Error:${req.method}\t${serialize(err.message)}\t /api/v1/students${
+       req.url
+     }`,
+     "Log",
+     guid
+   );
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       data: `issue completing request ${err.message}`,
       code: StatusCodes.INTERNAL_SERVER_ERROR,
@@ -205,13 +210,13 @@ let createStudent = async (req, res) => {
 //  console.log(req);
    const errors = validationResult(req);
    if (!errors.isEmpty()) {
-     audEvents(
-       `BAD_REQUEST:${req.method}\t${serialize(errors)}\t /api/v1/students${
-         req.url
-       }`,
-       "Log",
-       GUID
-     );
+    await audEvents(
+      `BAD_REQUEST:${req.method}\t${serialize(errors)}\t /api/v1/students${
+        req.url
+      }`,
+      "Log",
+      GUID
+    );
   
      return res
        .status(StatusCodes.BAD_REQUEST)
@@ -225,13 +230,13 @@ let createStudent = async (req, res) => {
 
   }
   try {
-    audEvents(
-      `Request:${req.method}\tHeader:${serialize(req.headers)}\tBody${serialize(
-        req.body
-      )}\t ${req.baseUrl}`,
-      "Log",
-      GUID
-    );
+  await audEvents(
+    `Request:${req.method}\tHeader:${serialize(req.headers)}\tBody${serialize(
+      req.body
+    )}\t ${req.baseUrl}`,
+    "Log",
+    GUID
+  );
     let [created,_] = await knex("tbl_students").insert({
       title,
       band,
@@ -256,11 +261,11 @@ let createStudent = async (req, res) => {
         ref: GUID,
       });
     }
-    audEvents(
-      `BAD_GATEWAY:${req.method}\t failed to insert\t /api/v1/students${req.url})}`,
-      "Log",
-      GUID
-    );
+  await audEvents(
+    `BAD_GATEWAY:${req.method}\t failed to insert\t /api/v1/students${req.url})}`,
+    "Log",
+    GUID
+  );
     return res.status(StatusCodes.BAD_GATEWAY).json({
       data: users,
       code: StatusCodes.BAD_GATEWAY,
@@ -268,13 +273,13 @@ let createStudent = async (req, res) => {
       ref: GUID,
     });
   } catch (err) {
-    audEvents(
-      `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
-        err.message
-      )}\t /api/v1/students${req.url})}`,
-      "Log",
-      GUID
-    );
+  await audEvents(
+    `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
+      err.message
+    )}\t /api/v1/students${req.url})}`,
+    "Log",
+    GUID
+  );
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       data: err.message,
       code: StatusCodes.INTERNAL_SERVER_ERROR,
@@ -289,13 +294,13 @@ let createStudent_raw = async (req, res) => {
   //  console.log(req);
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    audEvents(
-      `BAD_REQUEST:${req.method}\t${serialize(errors)}\t /api/v1/students${
-        req.url
-      }`,
-      "Log",
-      GUID
-    );
+   await audEvents(
+     `BAD_REQUEST:${req.method}\t${serialize(errors)}\t /api/v1/students${
+       req.url
+     }`,
+     "Log",
+     GUID
+   );
 
     return res.status(StatusCodes.BAD_REQUEST).json({
       errors: errors.array(),
@@ -305,13 +310,13 @@ let createStudent_raw = async (req, res) => {
     });
   }
   try {
-    audEvents(
-      `Request:${req.method}\tHeader:${serialize(req.headers)}\tBody${serialize(
-        req.body
-      )}\t ${req.baseUrl}`,
-      "Log",
-      GUID
-    );
+   await audEvents(
+     `Request:${req.method}\tHeader:${serialize(req.headers)}\tBody${serialize(
+       req.body
+     )}\t ${req.baseUrl}`,
+     "Log",
+     GUID
+   );
     function dateCreated(){
       let d = new Date();
       let yr = d.getFullYear();
@@ -350,11 +355,11 @@ let createStudent_raw = async (req, res) => {
         ref: GUID,
       });
     }
-    audEvents(
-      `BAD_GATEWAY:${req.method}\t failed to insert\t /api/v1/students${req.url})}`,
-      "Log",
-      GUID
-    );
+   await audEvents(
+     `BAD_GATEWAY:${req.method}\t failed to insert\t /api/v1/students${req.url})}`,
+     "Log",
+     GUID
+   );
     return res.status(StatusCodes.BAD_GATEWAY).json({
       data: users,
       code: StatusCodes.BAD_GATEWAY,
@@ -362,13 +367,13 @@ let createStudent_raw = async (req, res) => {
       ref: GUID,
     });
   } catch (err) {
-    audEvents(
-      `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
-        err.message
-      )}\t /api/v1/students${req.url})}`,
-      "Log",
-      GUID
-    );
+   await audEvents(
+     `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
+       err.message
+     )}\t /api/v1/students${req.url})}`,
+     "Log",
+     GUID
+   );
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       data: err.message,
       code: StatusCodes.INTERNAL_SERVER_ERROR,
@@ -383,11 +388,13 @@ let getStudentById = async (req, res) => {
   const { id } = req.params;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    audEvents(
-      `BAD_REQUEST:${req.method}\t${serialize(errors)}\t /api/v1/students${req.url}`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `BAD_REQUEST:${req.method}\t${serialize(errors)}\t /api/v1/students${
+       req.url
+     }`,
+     "Log",
+     guid
+   );
 
     return res.status(StatusCodes.BAD_REQUEST).json({
       errors: errors.array(),
@@ -397,13 +404,13 @@ let getStudentById = async (req, res) => {
     });
   }
   try {
-    audEvents(
-      `Request:Header:${serialize(req.headers)}\t${req.method}\t${serialize(
-        req.params
-      )}\t${req.baseUrl+req.url}`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `Request:Header:${serialize(req.headers)}\t${req.method}\t${serialize(
+       req.params
+     )}\t${req.baseUrl + req.url}`,
+     "Log",
+     guid
+   );
     const result = await knex("tbl_students")
       .where({ id })
       .select("title", "band", "venue", "price");
@@ -426,11 +433,11 @@ let getStudentById = async (req, res) => {
           ref: guid,
         });
     }
-    audEvents(
-      `NOT_FOUND:${req.method}\t id ${id} doesn't exist\t /api/v1/students${req.url})}`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `NOT_FOUND:${req.method}\t id ${id} doesn't exist\t /api/v1/students${req.url})}`,
+     "Log",
+     guid
+   );
     return res.status(StatusCodes.NOT_FOUND).json({
       data: `id ${id} doesn't exist`,
       code: StatusCodes.NOT_FOUND,
@@ -438,13 +445,13 @@ let getStudentById = async (req, res) => {
       ref: guid,
     });
   } catch (err) {
-    audEvents(
-      `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
-        err.message
-      )}\t /api/v1/students${req.url})}`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
+       err.message
+     )}\t /api/v1/students${req.url})}`,
+     "Log",
+     guid
+   );
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       data: "error completing request",
       code: StatusCodes.INTERNAL_SERVER_ERROR,
@@ -459,13 +466,13 @@ let getStudentById_Raw = async (req, res) => {
   const { id } = req.params;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    audEvents(
-      `BAD_REQUEST:${req.method}\t${serialize(errors)}\t /api/v1/students${
-        req.url
-      }`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `BAD_REQUEST:${req.method}\t${serialize(errors)}\t /api/v1/students${
+       req.url
+     }`,
+     "Log",
+     guid
+   );
 
     return res.status(StatusCodes.BAD_REQUEST).json({
       errors: errors.array(),
@@ -475,25 +482,25 @@ let getStudentById_Raw = async (req, res) => {
     });
   }
   try {
-    audEvents(
-      `Request:${req.method}\t${serialize(req.params)}\t /api/v1/students${
-        req.url
-      }`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `Request:${req.method}\t${serialize(req.params)}\t /api/v1/students${
+       req.url
+     }`,
+     "Log",
+     guid
+   );
 
     //below uses bindings which guide against sql injection attack
    const [result,_] = await knex.raw("SELECT title,band,venue,price FROM tbl_students WHERE id = ?", [id]);
     console.log(result);
     if (result.length !== 0) {
-      audEvents(
-        `Response:${req.method}\t id find was successfull-${serialize(
-          result
-        )}\t url:/api/v1/students${req.url}}`,
-        "Log",
-        guid
-      );
+     await audEvents(
+       `Response:${req.method}\t id find was successfull-${serialize(
+         result
+       )}\t url:/api/v1/students${req.url}}`,
+       "Log",
+       guid
+     );
       return res.status(StatusCodes.OK).json({
         data: result[0],
         code: StatusCodes.OK,
@@ -501,11 +508,11 @@ let getStudentById_Raw = async (req, res) => {
         ref: guid,
       });
     }
-    audEvents(
-      `NOT_FOUND:${req.method}\t id ${id} doesn't exist\t /api/v1/students${req.url})}`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `NOT_FOUND:${req.method}\t id ${id} doesn't exist\t /api/v1/students${req.url})}`,
+     "Log",
+     guid
+   );
     return res.status(StatusCodes.NOT_FOUND).json({
       data: `id ${id} doesn't exist`,
       code: StatusCodes.NOT_FOUND,
@@ -513,13 +520,13 @@ let getStudentById_Raw = async (req, res) => {
       ref: guid,
     });
   } catch (err) {
-    audEvents(
-      `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
-        err.message
-      )}\t /api/v1/students${req.url})}`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
+       err.message
+     )}\t /api/v1/students${req.url})}`,
+     "Log",
+     guid
+   );
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       data: "error completing request",
       code: StatusCodes.INTERNAL_SERVER_ERROR,
@@ -535,13 +542,13 @@ let getTodoId_Raw = async (req, res) => {
   let boolOutput = id.toLowerCase() == 'true' ? true : false; //ternary operator returns boolean
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    audEvents(
-      `BAD_REQUEST:${req.method}\t${serialize(errors)}\t /api/v1/students${
-        req.url
-      }`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `BAD_REQUEST:${req.method}\t${serialize(errors)}\t /api/v1/students${
+       req.url
+     }`,
+     "Log",
+     guid
+   );
 
     return res.status(StatusCodes.BAD_REQUEST).json({
       errors: errors.array(),
@@ -551,25 +558,25 @@ let getTodoId_Raw = async (req, res) => {
     });
   }
   try {
-    audEvents(
-      `Request:${req.method}\t${serialize(req.params)}\t /api/v1/students${
-        req.url
-      }`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `Request:${req.method}\t${serialize(req.params)}\t /api/v1/students${
+       req.url
+     }`,
+     "Log",
+     guid
+   );
 
     //below uses bindings which guide against sql injection attack wiht storedProc
     const [result, _] = await knex.raw("CALL new_filterTodos(?)", [boolOutput]);
     console.log(result);
     if (result.length !== 0) {
-      audEvents(
-        `Response:${req.method}\t id find was successfull-${serialize(
-          result
-        )}\t url:/api/v1/students${req.url}}`,
-        "Log",
-        guid
-      );
+     await audEvents(
+       `Response:${req.method}\t id find was successfull-${serialize(
+         result
+       )}\t url:/api/v1/students${req.url}}`,
+       "Log",
+       guid
+     );
       return res.status(StatusCodes.OK).json({
         data: result[0],
         code: StatusCodes.OK,
@@ -577,11 +584,11 @@ let getTodoId_Raw = async (req, res) => {
         ref: guid,
       });
     }
-    audEvents(
-      `NOT_FOUND:${req.method}\t id ${id} doesn't exist\t /api/v1/students${req.url})}`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `NOT_FOUND:${req.method}\t id ${id} doesn't exist\t /api/v1/students${req.url})}`,
+     "Log",
+     guid
+   );
     return res.status(StatusCodes.NOT_FOUND).json({
       data: `id ${id} doesn't exist`,
       code: StatusCodes.NOT_FOUND,
@@ -589,13 +596,13 @@ let getTodoId_Raw = async (req, res) => {
       ref: guid,
     });
   } catch (err) {
-    audEvents(
-      `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
-        err.message
-      )}\t /api/v1/students${req.url})}`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
+       err.message
+     )}\t /api/v1/students${req.url})}`,
+     "Log",
+     guid
+   );
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       data: "error completing request",
       code: StatusCodes.INTERNAL_SERVER_ERROR,
@@ -610,13 +617,13 @@ let deleteStudentById_Raw = async (req, res) => {
   const { id } = req.params;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    audEvents(
-      `Method::${req.method}\t${serialize(errors)}\t${
-        StatusCodes.BAD_REQUEST
-      }\t${req.url} /api/v1/students`,
-      "Log",
-      guid
-    );
+  await audEvents(
+    `Method::${req.method}\t${serialize(errors)}\t${StatusCodes.BAD_REQUEST}\t${
+     req.baseUrl + req.url
+    } `,
+    "Log",
+    guid
+  );
 
     return res.status(StatusCodes.BAD_REQUEST).json({
       errors: errors.array(),
@@ -626,13 +633,13 @@ let deleteStudentById_Raw = async (req, res) => {
     });
   }
   try {
-    audEvents(
-      `Request:${req.method}\t${serialize(req.params)}\t /api/v1/students${
-        req.url
-      }`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `Request:${req.method}\t${serialize(req.params)}\t /api/v1/students${
+       req.url
+     }`,
+     "Log",
+     guid
+   );
 
     //below uses bindings which guide against sql injection attack
     const result = await knex.raw("DELETE  FROM tbl_students WHERE id = ?", [
@@ -644,15 +651,15 @@ let deleteStudentById_Raw = async (req, res) => {
     //this function return promise which should have await operator
     //it will return both the field and actual raw data
     if (deleted.affectedRows === 1) {
-      audEvents(
-        `Response:Method:${req.method}\tHeaders:${serialize(
-          res.headers
-        )}\tBody:student id ${id} deleted  successfull-${serialize(
-          result
-        )}\t url:/api/v1/students${req.url}}`,
-        "Log",
-        guid
-      );
+     await audEvents(
+       `Response:Method:${req.method}\tHeaders:${serialize(
+         res.headers
+       )}\tBody:student id ${id} deleted  successfull-${serialize(
+         result
+       )}\t url:/api/v1/students${req.url}}`,
+       "Log",
+       guid
+     );
       return res.status(StatusCodes.OK).json({
         data: `student id ${id} deleted  successfull`,
         code: StatusCodes.OK,
@@ -661,11 +668,11 @@ let deleteStudentById_Raw = async (req, res) => {
       });
     }
     else if (deleted.affectedRows === 0) {
-      audEvents(
-        `NOT_FOUND:${req.method}\t id ${id} doesn't exist\t /api/v1/students${req.url})}`,
-        "Log",
-        guid
-      );
+     await audEvents(
+       `NOT_FOUND:${req.method}\t id ${id} doesn't exist\t /api/v1/students${req.url})}`,
+       "Log",
+       guid
+     );
       return res.status(StatusCodes.NOT_FOUND).json({
         data: `id ${id} doesn't exist`,
         code: StatusCodes.NOT_FOUND,
@@ -674,15 +681,15 @@ let deleteStudentById_Raw = async (req, res) => {
       });
     }
   } catch (err) {
-    audEvents(
-      `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
-        err.message
-      )}\t /api/v1/students${req.url})}`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
+       err
+     )}\t ${req.baseUrl + req.url})}`,
+     "Log",
+     guid
+   );
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      data: "error completing request",
+      data: `${err.message} error completing request`,
       code: StatusCodes.INTERNAL_SERVER_ERROR,
       success: false,
       ref: guid,
@@ -729,33 +736,83 @@ const sendMail=async (req,res)=>{
   });
 };
 
-let fetchApi = async (req, res) => {
+const fetchApi = async (req, res) => {
   const guid = uuid();
   try {
   
+      const body = { requestId: "5465454", id: "YV111111111111FY" };
+      await audEvents(
+        `Request:${req.method}\t${serialize(body)}\t /api/v1/students${
+          req.url
+        }`,
+        "Log",
+        guid
+      );
+
+      const response = await fetch(process.env.END_POINT, {
+        method: "post",
+        body: JSON.stringify(body),
+        headers: { "Content-Type": "application/json", client_id: "123" },
+      });
+      const datas = await response.json();
+      console.log(response);
+      console.log(datas);
+      if (datas !== null && datas.code === HTTP_STATUS_CODE.CONFLICT) {
+       await audEvents(
+         `Response:${req.method}\t duplicate request-${serialize(
+           datas
+         )}\t ${serialize(response)} \turl:/api/v1/students${req.url}}`,
+         "Log",
+         guid
+       );
+        return res.status(StatusCodes.CONFLICT).json({
+          response:  datas ,
+          code: StatusCodes.CONFLICT,
+          success: HTTP_STATUS_DESCRIPTION.FALSE,
+          message:HTTP_STATUS_DESCRIPTION.FAIL,
+          ref: guid,
+        });
+      }
+      if (datas !== null && datas.code === HTTP_STATUS_CODE.OK) {
+        await audEvents(
+          `Response:${req.method}\t call was successfull-${serialize(
+            datas
+          )}\t ${serialize(response)} \t url:/api/v1/students${req.url}}`,
+          "Log",
+          guid
+        );
+         return res.status(StatusCodes.OK).json({
+           response: datas,
+           code: StatusCodes.OK,
+           success: HTTP_STATUS_DESCRIPTION.TRUE,
+           message:HTTP_STATUS_DESCRIPTION.SUCCESS,
+           ref: guid,
+         });
+      }
     return res.status(StatusCodes.NOT_FOUND).json({
-      data: "student doesn't exist",
+      data: HTTP_STATUS_DESCRIPTION.NOT_EXIST,
       code: StatusCodes.NOT_FOUND,
-      success: false,
+      success: HTTP_STATUS_DESCRIPTION.FALSE,
+      message:HTTP_STATUS_DESCRIPTION.FAIL,
       ref: guid,
     });
   } catch (err) {
-    audEvents(
-      `Error:${req.method}\t${serialize(err.message)}\t /api/v1/students${
-        req.url
-      }`,
-      "Log",
-      guid
-    );
+   await audEvents(
+     `Error:${req.method}\t${serialize(err.message)}\t${req.baseUrl}${
+       req.path
+     }${req.url}`,
+     "Log",
+     guid
+   );
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       data: `issue completing request ${err.message}`,
       code: StatusCodes.INTERNAL_SERVER_ERROR,
-      success: false,
+      success: HTTP_STATUS_DESCRIPTION.FALSE,
+      message: HTTP_STATUS_DESCRIPTION.FAIL,
       ref: guid,
     });
   }
 };
-
 //#endregion
 
 module.exports = {
@@ -768,11 +825,13 @@ module.exports = {
   getStudentById_Raw,
   deleteStudentById_Raw,
   sendMail,
+  fetchApi
 };
 
 //#region JS Practice
 const dns = require('dns');
 const os = require('os');
+const { format } = require("path");
 //console.log(os.hostname());
 //console.log(os.userInfo().username);
 //setInterval(function(){console.log('loving you fatimah')},1000)
@@ -861,5 +920,17 @@ let text = numb.toString();
 // console.log(text.substring(7, 13));
 // console.log(text.replace(/apple/gi,'mango'));
 //console.log("loving you\n".repeat(5));
+fs.readFile('Log/20230108.txt','utf8',(err,data)=>{
+  if(err)throw err
+  //console.log(data);
+  //console.log('read complete');
+})
+
+process.on('uncaughtexception',err => {
+  console.log(`thera was an uncaught error:- ${err}`);
+  process.exit(1);
+})
+
+
 //#endregion
  

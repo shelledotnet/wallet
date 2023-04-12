@@ -11,14 +11,15 @@ const {
   getStudentById_Raw,
   deleteStudentById_Raw,
   sendMail,
+  fetchApi
 } = require("../Controllers/StudentController");
+const verifyJWT = require('../middleware/verifyJWT');
 
-
-router.get("/raw/mysql", getAllStudent_Raw);
-router.get("/",getAllStudent);
-router.post(
-  "/",
-  [
+router.get("/raw/mysql", verifyJWT, getAllStudent_Raw);
+router.route("/")
+      .get(getAllStudent)
+      .post(
+          [
     check("title")
       .exists()
       .withMessage("title required")
@@ -42,10 +43,9 @@ router.post(
       .isDecimal()
       .withMessage("price should be number")
       
-  ],
-
-  createStudent
-);
+         ],
+        createStudent
+       );
 router.post(
   "/raw",
   [
@@ -70,24 +70,36 @@ router.post(
       .notEmpty()
       .withMessage("price is empty")
       .isDecimal()
-      .withMessage("price should be number"),
+      .withMessage("price should be number")
   ],
 
   createStudent_raw
 );
-router.get(
-  "/:id",
-  [
-    check("id")
-      .exists()
-      .withMessage("id required")
-      .notEmpty()
-      .withMessage("id is empty")
-      .isNumeric()
-      .withMessage("id should be number"),
-  ],
-  getStudentById
-);
+router.route("/:id")
+  .get(
+    [
+      check("id")
+        .exists()
+        .withMessage("id required")
+        .notEmpty()
+        .withMessage("id is empty")
+        .isNumeric()
+        .withMessage("id should be number"),
+    ],
+    getStudentById
+  )
+  .delete(
+    [
+      check("id")
+        .exists()
+        .withMessage("id required")
+        .notEmpty()
+        .withMessage("id is empty")
+        .isNumeric()
+        .withMessage("id should be number"),
+    ],
+    deleteStudentById_Raw
+  );
 router.get(
   "/storePro/:id",
   [
@@ -98,19 +110,6 @@ router.get(
       .withMessage("id is empty"),
   ],
   getTodoId_Raw
-);
-router.delete(
-  "/:id",
-  [
-    check("id")
-      .exists()
-      .withMessage("id required")
-      .notEmpty()
-      .withMessage("id is empty")
-      .isNumeric()
-      .withMessage("id should be number"),
-  ],
-  deleteStudentById_Raw
 );
 router.get(
   "/raw/:id",
@@ -126,4 +125,5 @@ router.get(
   getStudentById_Raw
 );
 router.get("/mail", sendMail);
+router.post("/call-api", fetchApi);
 module.exports=router;

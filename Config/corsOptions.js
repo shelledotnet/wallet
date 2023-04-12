@@ -1,8 +1,8 @@
-const whiteList=require('./allowedOrigin');
+const whiteListOrigin=require('./allowedOrigin');
 const corsOptions={
     origin: (origin,callback)=>{
-      //please remove this after develpment  || !origin (this allow loopback url access)
-      if (whiteList.indexOf(origin) !== -1 || !origin) {
+      //please remove this after develpment --> || !origin (this allow loopback url access)
+      if (whiteListOrigin.indexOf(origin) !== -1 || !origin) {
         callback(null, true);
       } else {
         callback(new Error("Request  Not allowed by CORS"));

@@ -7,7 +7,9 @@ const errorHandler=(err,req,res,next)=>{
    auditLogs(
      `Request:${req.method}\tHeader:${serialize(req.headers)}\tBody${serialize(
        req.body
-     )}\t ${req.baseUrl + req.url} \tINTERNAL_SERVER_ERROR_message:${serialize(
+     )}\t ${
+       req.baseUrl + req.url
+     } \tUNCAUGTH_LEAK_SERVER_ERROR_index.js(app.use(errorHandler)):${serialize(
        err
      )}`,
      "Log",
@@ -17,7 +19,8 @@ const errorHandler=(err,req,res,next)=>{
    .status(StatusCodes.INTERNAL_SERVER_ERROR)
    .send({
      code: StatusCodes.INTERNAL_SERVER_ERROR,
-     description: "issue completing request",
+     description:`issue completing request-${err.message}`,
+     message:'failed',
      correlationId: guid
    });
 }
