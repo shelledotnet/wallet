@@ -19,7 +19,14 @@ router.post(
       .notEmpty()
       .withMessage("pwd is empty")
       .isAlphanumeric()
-      .withMessage("allow only alphabet and number")
+      .withMessage("allow only alphabet and number"),
+    check("email")
+      .exists()
+      .withMessage("email required")
+      .notEmpty()
+      .withMessage("email is empty")
+      .isEmail()
+      .withMessage("invalid character for email")
   ],
   registerController.handleNewUser
 );

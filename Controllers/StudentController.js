@@ -5,6 +5,7 @@ const { validationResult } = require("express-validator");
 //const knex=require("../Config/Conn");  //what comes back from require knex are functions 
 const dataSource = require("../Config/kbnex-cfg").development;  //what comes back from require knex are functions 
 const knex=require("knex")(dataSource);  //what comes back from require knex are functions 
+const { HTTP_STATUS_CODE, HTTP_STATUS_DESCRIPTION } = require("../Global");
 const {StatusCodes}=require('http-status-codes');
 const date = require("date-and-time");
 const nodemailer = require("nodemailer");
@@ -12,7 +13,6 @@ const now  =date.addHours(new Date(),1);
 const audEvents = require("../middleware/auditLogs");
 const serialize = require("serialize-javascript");
 const { roundToNearestMinutes } = require("date-fns");
-const {HTTP_STATUS_CODE,HTTP_STATUS_DESCRIPTION} = require('../Global');
 const fetch = require("node-fetch"); 
 const fs = require("fs");
 const fsPromises = require("fs").promises;
@@ -77,6 +77,40 @@ const path = require("path");
 //    }
    
 // }
+let getcurrentuser = async (req, res) => {
+  const guid = uuid();
+  try {
+       await audEvents(
+         `Response:${req.method}\t getcurrentuser \t ${req.baseUrl + req.url}`,
+         "Log",
+         guid
+       );
+      return res.status(StatusCodes.OK).json({
+        data: req.currentUser,
+        code: StatusCodes.OK,
+        success: HTTP_STATUS_DESCRIPTION.SUCCESS,
+        ref: guid,
+      });
+    
+  } catch (err) {
+    await audEvents(
+      `Error:${req.method}\t${serialize(err.message)}\t /api/v1/students${
+        req.url
+      }`,
+      "Log",
+      guid
+    );
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      data: err.message,
+      code: StatusCodes.INTERNAL_SERVER_ERROR,
+      success: false,
+      ref: guid,
+    });
+  }
+};
+
+
+
 let getAllStudent = async (req, res) => {
   const guid = uuid();
    try {
@@ -144,8 +178,10 @@ let getAllStudent_Raw = async (req, res) => {
     //.limit(2).first().distinct();
     //const query=await knex("book").select(knex.raw("COUNT(*) as BookCount"));
     //const query=await knex("book").knex.raw("select price where id=2"));
-
-    const [users, _] = await knex.raw("select distinct band ,  venue from tbl_students");
+    //mysqld  --defaults-file="C:\ProgramData\MySQL\MySQL Server 8.0\my.ini" --standalone --console
+    const [users, _] = await knex.raw(
+      "select distinct band ,  venue from tbl_students"
+    );
     //using array distructure to pull out first array
     //node is event driven most of the function u will be dealing wiht return promises and we have to consume them using promise syntax
     //.then() and .catch() however a more better way of consuming this promises is using async/await syntax this make your code easier and readable
@@ -153,17 +189,18 @@ let getAllStudent_Raw = async (req, res) => {
     //promise has 2 agument reject() and resolve()
     //it will return both the field and actual raw data
     console.log(_);
-    
+    console.log(`checking the loged in user ${req.user}${req.roles}`);
+
     if (users.length !== 0) {
-     // Object.freeze(users); 
-      users.unshift({"band":"fatimah"});//add infront of the array
-      users.push({"band":"loving"});//add behind the array
-     // Object.freeze(users);  //do not alter the response
-     // users.shift()//remove from front of an array andd return the removed element
-     // users.pop()//remove from behind and return the removed element
-      audEvents(
-        `Response:${req.method}\t${serialize(users)}\t /api/v1/students${
-          req.url
+      // Object.freeze(users); // you cant add or remove from the result
+      users.unshift({ band: "fatimah" }); //add infront of the array
+      users.push({ band: "loving" }); //add behind the array
+      // Object.freeze(users);  //do not alter the response
+      // users.shift()//remove from front of an array andd return the removed element
+      // users.pop()//remove from behind and return the removed element
+     await audEvents(
+        `Response:${req.method}\t${serialize(users)}\t ${
+          req.baseUrl + req.url
         }`,
         "Log",
         guid
@@ -176,11 +213,11 @@ let getAllStudent_Raw = async (req, res) => {
         ref: guid,
       });
     }
-   await audEvents(
-     `NOT_FOUND:${req.method}\t records doesn't exist\t /api/v1${req.url})}`,
-     "Log",
-     guid
-   );
+    await audEvents(
+      `NOT_FOUND:${req.method}\t records doesn't exist\t /api/v1${req.url})}`,
+      "Log",
+      guid
+    );
     return res.status(StatusCodes.NOT_FOUND).json({
       data: "student doesn't exist",
       code: StatusCodes.NOT_FOUND,
@@ -189,7 +226,7 @@ let getAllStudent_Raw = async (req, res) => {
     });
   } catch (err) {
    await audEvents(
-     `Error:${req.method}\t${serialize(err.message)}\t /api/v1/students${
+     `Error:${req.method}\t${serialize(err)}\t /api/v1/students${
        req.url
      }`,
      "Log",
@@ -198,7 +235,8 @@ let getAllStudent_Raw = async (req, res) => {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       data: `issue completing request ${err.message}`,
       code: StatusCodes.INTERNAL_SERVER_ERROR,
-      success: false,
+      success: HTTP_STATUS_DESCRIPTION.FALSE,
+      message: HTTP_STATUS_DESCRIPTION.FAIL,
       ref: guid,
     });
   }
@@ -313,7 +351,7 @@ let createStudent_raw = async (req, res) => {
    await audEvents(
      `Request:${req.method}\tHeader:${serialize(req.headers)}\tBody${serialize(
        req.body
-     )}\t ${req.baseUrl}`,
+     )}\t ${req.baseUrl + req.url}`,
      "Log",
      GUID
    );
@@ -817,6 +855,7 @@ const fetchApi = async (req, res) => {
 
 module.exports = {
   getAllStudent,
+  getcurrentuser,
   getAllStudent_Raw,
   getTodoId_Raw,
   createStudent,

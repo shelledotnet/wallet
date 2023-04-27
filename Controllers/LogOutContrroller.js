@@ -1,10 +1,5 @@
 //#region dependency
-const userDB = {
-  users: require("../models/users.json"),
-  setUsers: function (data) {
-    this.users = data;
-  },
-};
+const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const isJwtExpired = require("jwt-check-expiration");
@@ -24,31 +19,28 @@ const audEvents = require("../middleware/auditLogs");
 
 //#region  Actionmethod
 const handleRefereshTokenLogOut = async (req, res) => {
+  //on client side also delete accesstoken
   // we can only delete refeshtoken from the backend
   //on client side endeavore to delete the accessToken as well, which is not possible from the backend
   const guid = uuid();
   const cookies = req.cookies;
   //check if cookies exist and if jwt is in the cookies (optional chaining operator ?)
+  //please not we have already declared jwt property holds referhstoken value
   if (!cookies?.jwt)
     //this ok
     return res.status(StatusCodes.NO_CONTENT).json({
       data: HTTP_STATUS_DESCRIPTION.NO_CONTENT,
-      code: StatusCodes.BAD_REQUEST,
+      code: StatusCodes.NO_CONTENT,
       success: HTTP_STATUS_DESCRIPTION.TRUE,
       message: HTTP_STATUS_DESCRIPTION.SUCCESS,
       ref: guid,
     });
   console.log(cookies.jwt);
-  const refreshtTokin = cookies.jwt;
+  const refreshToken = cookies.jwt;
   //evaluate refreshtTokin because its safe in the DB.. we cant do this for accesstoken becose is not save anywhere
-  const foundUser = userDB.users.find(
-    (p) =>
-      p.refreshtTokin === refreshtTokin &&
-      p.Expired !== "True" &&
-      p.Active === "True"
-  );
+  const foundUser = await User.findOne({ refreshToken }).exec();
   if (!foundUser) {
-    res.clearCookie("jwt", { httpOnly: true, sameSite: "None", seucre: true }); //on production include --> secure: true -- only serves on https
+    res.clearCookie("jwt", { httpOnly: true, sameSite: "None", secure: true }); //on production include --> secure: true -- only serves on https
     return res.status(StatusCodes.NO_CONTENT).json({
       data: HTTP_STATUS_DESCRIPTION.NO_CONTENT,
       code: StatusCodes.NO_CONTENT,
@@ -59,8 +51,11 @@ const handleRefereshTokenLogOut = async (req, res) => {
   }
 
   //Delete refereshToken in the DB
-
-  res.clearCookie("jwt", { httpOnly: true, sameSite: "None", seucre: true }); //on production include --> secure: true -- only serves on https
+  foundUser.refreshToken = '';
+  const result = await foundUser.save();
+  console.log(result);
+  
+  res.clearCookie("jwt", { httpOnly: true, sameSite: "None", secure: true }); //on production include --> secure: true -- only serves on https
   return res.status(StatusCodes.NO_CONTENT).json({
     data: HTTP_STATUS_DESCRIPTION.NO_CONTENT,
     code: StatusCodes.NO_CONTENT,
@@ -68,7 +63,6 @@ const handleRefereshTokenLogOut = async (req, res) => {
     message: HTTP_STATUS_DESCRIPTION.SUCCESS,
     ref: guid,
   });
-
 };
 //#endregion
 module.exports = { handleRefereshTokenLogOut };

@@ -1,10 +1,5 @@
 //#region dependency
-const userDB = {
-  users: require("../models/users.json"),
-  setUsers: function (data) {
-    this.users = data;
-  },
-};
+const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const isJwtExpired = require("jwt-check-expiration");
@@ -26,19 +21,19 @@ const audEvents = require("../middleware/auditLogs");
 const handleRefreshToken = async (req, res) => {
   const guid = uuid();
   const cookies = req.cookies;
-  //check if cookies exist and if jwt is in the cookies (optional chaining operator ?)
+  //check if cookies exist and if jwt property is in the cookies (optional chaining operator ?)
   if (!cookies?.jwt)
     return res.status(StatusCodes.UNAUTHORIZED).json({
       data: HTTP_STATUS_DESCRIPTION.UNAUTHORIZED,
-      code: StatusCodes.BAD_REQUEST,
+      code: StatusCodes.UNAUTHORIZED,
       success: HTTP_STATUS_DESCRIPTION.FALSE,
       message: HTTP_STATUS_DESCRIPTION.FAIL,
       ref: guid,
     });
   console.log(cookies.jwt);
-  const refreshtTokin = cookies.jwt;
+  const refreshToken = cookies.jwt;
   //evaluate refreshtTokin because its safe in the DB.. we cant do this for token becose is not save anywhere
-  const foundUser = userDB.users.find((p) => p.refreshtTokin === refreshtTokin && p.Expired !== "True" && p.Active === "True");
+  const foundUser = await User.findOne({ refreshToken }).exec();
   if (!foundUser)
     return res.status(StatusCodes.FORBIDDEN).json({
       data: HTTP_STATUS_DESCRIPTION.FORBIDDEN,
@@ -50,7 +45,7 @@ const handleRefreshToken = async (req, res) => {
   //verify refereshToken
   const roles = Object.values(foundUser.roles);
     jwt.verify(
-      refreshtTokin,
+      refreshToken,
       process.env.REFRESH_TOKEN_SECRET,
       //a call back function return
       (err, decoded) => {
@@ -64,7 +59,6 @@ const handleRefreshToken = async (req, res) => {
           });
         //create jwt
         const accessToken = jwt.sign(
-            
           //custome paylod -avoid passing sensitive data e.g password
           {
             UserInfo: {

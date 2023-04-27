@@ -6,10 +6,10 @@ const { StatusCodes } = require("http-status-codes");
 const { v4: uuid } = require("uuid");
 //#endregion
 //#region Resources
-const verifyJWT = (req,res,next) => {
+const verifyJWT = (req,res,next) => { //do ensure your middlwear always as next params
     const guid = uuid();
-    const authHeader = req.headers['authorization'];
-    if(!authHeader)
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    if(!authHeader?.startsWith('Bearer '))
     return res.status(StatusCodes.UNAUTHORIZED).json({
       data: HTTP_STATUS_DESCRIPTION.UNAUTHORIZED,
       code: StatusCodes.UNAUTHORIZED,
@@ -28,11 +28,16 @@ const verifyJWT = (req,res,next) => {
               data: HTTP_STATUS_DESCRIPTION.FORBIDDEN,
               code: StatusCodes.FORBIDDEN,
               success: HTTP_STATUS_DESCRIPTION.FALSE,
-              message: err.message,
+              message:  err.message,
               ref: guid,
             });
             //the valid response as the payload of the user in the token when decoded
-            req.user = decoded.username
+            req.user = decoded.UserInfo.username;
+            req.roles = decoded.UserInfo.roles;
+            req.currentUser = decoded;
+            console.log(
+              `checking the loged in user ${JSON.stringify(decoded)}`
+            );
             next(); //this pass the function to the next middlewear/function
         }
         

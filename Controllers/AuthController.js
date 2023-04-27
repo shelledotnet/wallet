@@ -1,8 +1,5 @@
 //#region dependency
-const userDB = {
-    users: require('../models/users.json'),
-    setUsers: function(data){this.users=data}
-};
+const User = require("../models/User");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const isJwtExpired = require('jwt-check-expiration');
@@ -34,7 +31,7 @@ const handleLogin = async (req,res) => {
       "Log",
       guid
     );
-    //but why are we logging remote client validation above any its a good prctise
+    //but why are we logging remote client validation above any way its a good prctise
     return res.status(StatusCodes.BAD_REQUEST).json({
       errors: errors.array(),
       data: HTTP_STATUS_DESCRIPTION.BAD_REQUEST,
@@ -62,7 +59,7 @@ const handleLogin = async (req,res) => {
     });
   }
   //evaluate user
-  const foundUser = userDB.users.find((p) => p.username === user);
+  const foundUser = await User.findOne({ username: user }).exec();
   if (!foundUser){
     await audEvents(
       `UNAUTHORIZED:${req.method}\t invalid user or password\t${
@@ -90,8 +87,8 @@ const handleLogin = async (req,res) => {
       {
         UserInfo: {
           username: foundUser.username,
-          roles:roles
-        }
+          roles: roles
+        },
       },
       process.env.ACCESS_TOKEN_SECRET,
       //Generic payload
@@ -100,24 +97,31 @@ const handleLogin = async (req,res) => {
     );
     const refreshToken = jwt.sign(
       //custome paylod -avoid passing sensitive data e.g password
+      //there is no need of sending roles in refereshToken
       { username: foundUser.username },
       process.env.REFRESH_TOKEN_SECRET,
       //optional Generic payload
       { expiresIn: process.env.refreshToken_LifeSpan } //refershToken is longlife
       //on production include --> secure: true -- only serves on https
     );
-    //save refreshToken with current user in the DB-- that will allow us to create log out route-this will alow us to invalidate the refershToken when logout
-    // isActive , ExpiredAt ,  CreatedDate 
-    //the refresh token should be stored in the memory (not vonerable) is not securd in the local storage
+    //ensure to save refreshToken with current user in the DB-- that will allow us to create log out route-this will alow us to invalidate the refershToken when logout
+    // isActive , ExpiredAt ,  CreatedDate
+    //the refresh token should be stored in the memory (this is not vonerable) is not securd in the local storage
     //we also want to save our refershtoken in the DB and cokkies
     //By setting cokkies to HTTP only with this is not available to javascript ... is not vulnerable-- so we can save the refeshToken here in the cookies
+    foundUser.refreshToken = refreshToken;
+    foundUser.refreshTokenExpired = false;
+    foundUser.refreshTokenActive = true;
+    foundUser.refreshTokenExpiredDate = date.addMonths(new Date(), 5);
+    const result = await foundUser.save();
+    //console.log(result);
+
     res.cookie("jwt", refreshToken, {
       httpOnly: true,
-      sameSite: 'None',
-      seucre: true,
-      maxAge: 24 * 60 * 60 * 1000,
-    }); 
-    //1Day       
+      sameSite: "None",
+      maxAge: 24 * 60 * 60 * 1000  
+    }); //secure: true, include this in cookie object on prod
+     //1Day
     
 
     return res.status(StatusCodes.OK).json({

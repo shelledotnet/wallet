@@ -1,10 +1,5 @@
 //#region dependency
-const userDB = {
-  users: require("../models/users.json"),
-  setUsers: function (data) {
-    this.users = data;
-  },
-};
+const  User = require("../models/User");
 const bcrypt = require("bcrypt");
 require("dotenv").config();
 const fsPromises = require("fs").promises;
@@ -21,7 +16,7 @@ const audEvents = require("../middleware/auditLogs");
 //#region  Actionmethod
 const handleNewUser = async (req, res) => {
   const guid = uuid();
-  const { user, pwd } = req.body;
+  const { user, email, pwd } = req.body;
   //evaluate right propereties are passed
      const errors = validationResult(req);
    if (!errors.isEmpty()) {
@@ -43,7 +38,7 @@ const handleNewUser = async (req, res) => {
     });
    }
 
-  if (!user || !pwd)
+  if (!user || !pwd || !email)
     return res.status(StatusCodes.BAD_REQUEST).json({
       data: HTTP_STATUS_DESCRIPTION.BAD_REQUEST,
       code: StatusCodes.BAD_REQUEST,
@@ -52,7 +47,7 @@ const handleNewUser = async (req, res) => {
       ref: guid,
     });
   //evaluate user check for duplicate username in the DB
-  const duplicate = userDB.users.find((p) => p.username === user);
+   const duplicate = await User.findOne({ username: user }).exec();
   if (duplicate)
     return res.status(StatusCodes.CONFLICT).json({
       data: HTTP_STATUS_DESCRIPTION.CONFLICT,
@@ -64,26 +59,34 @@ const handleNewUser = async (req, res) => {
   //evaluate password
    try{
        //encrypt pwd
-       const hashPwd = await bcrypt.hash(pwd,10);
+       const hashedPwd = await bcrypt.hash(pwd,10);
        //store the new user
-       const newUser = {
-        "username":user,
-         "roles":{"User":2001},
-        "password": hashPwd
-      };
-       userDB.setUsers([...userDB.users,newUser]);
-       await fsPromises.writeFile(
-        path.join(__dirname,'..','models','users.json'),
-        JSON.stringify(userDB.users)
-       );
-       console.log(userDB.users);
+       const result = await User.create({
+         username: user,
+         // "roles":{"User":2001},role willl be created by default on user model creation
+         email:email,
+         password: hashedPwd,
+       });
+       
+       console.log(result);
+       if(result){
        return res.status(StatusCodes.CREATED).json({
          data: HTTP_STATUS_DESCRIPTION.CREATED,
          code: StatusCodes.CREATED,
          success: HTTP_STATUS_DESCRIPTION.TRUE,
          message: HTTP_STATUS_DESCRIPTION.SUCCESS,
-         ref: guid,
+         ref: guid
        });
+      }
+      else{
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          data: HTTP_STATUS_DESCRIPTION.BAD_REQUEST,
+          code: StatusCodes.BAD_REQUEST,
+          success: HTTP_STATUS_DESCRIPTION.FALSE,
+          message: HTTP_STATUS_DESCRIPTION.FAIL,
+          ref: guid,
+        });
+      }
    }catch(err){
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       data: err.message,

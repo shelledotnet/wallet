@@ -4,6 +4,7 @@ const router=express.Router();
 const {
   getAllStudent,
   createStudent,
+  getcurrentuser,
   createStudent_raw,
   getTodoId_Raw,
   getStudentById,
@@ -13,8 +14,11 @@ const {
   sendMail,
   fetchApi
 } = require("../Controllers/StudentController");
+const roles = require('../Config/roles_list');
 const verifyJWT = require('../middleware/verifyJWT');
+const verifyRoles = require("../middleware/verifyRoles");
 
+router.get("/currentuser", verifyJWT,verifyRoles(roles.Admin,roles.Editor), getcurrentuser);
 router.get("/raw/mysql", verifyJWT, getAllStudent_Raw);
 router.route("/")
       .get(getAllStudent)
@@ -126,4 +130,5 @@ router.get(
 );
 router.get("/mail", sendMail);
 router.post("/call-api", fetchApi);
+router.get("/current-user", verifyJWT, getcurrentuser);
 module.exports=router;
