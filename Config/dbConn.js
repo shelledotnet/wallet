@@ -1,4 +1,7 @@
 const mongoose = require('mongoose'); //elegant mongodb object modeling for node.js
+const audEvents = require("../middleware/auditLogs");
+const serialize = require("serialize-javascript");
+const { v4: uuid } = require("uuid");
 
 const connectDB=async () =>{
     try{
@@ -7,6 +10,13 @@ const connectDB=async () =>{
           useNewUrlParser: true, //for resolving issue errors from mongoose
         });
     }catch(err){
+        await audEvents(
+          `Error:::connecting to mongoDB \t${serialize(err)} ${serialize(
+            err.message
+          )}`,
+          "Log",
+          uuid()
+        );
         console.error(err);
     }
 }

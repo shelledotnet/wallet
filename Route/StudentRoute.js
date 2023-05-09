@@ -8,16 +8,20 @@ const {
   createStudent_raw,
   getTodoId_Raw,
   getStudentById,
+  getAllStudent_Raw_mssql,
   getAllStudent_Raw,
   getStudentById_Raw,
   deleteStudentById_Raw,
   sendMail,
-  fetchApi
+  getUsState,
+  fetchApi,
 } = require("../Controllers/StudentController");
 const roles = require('../Config/roles_list');
 const verifyJWT = require('../middleware/verifyJWT');
 const verifyRoles = require("../middleware/verifyRoles");
 
+router.get("/user-mssql", getAllStudent_Raw_mssql);
+router.get("/state-us", getUsState);
 router.get("/currentuser", verifyJWT,verifyRoles(roles.Admin,roles.Editor), getcurrentuser);
 router.get("/raw/mysql", verifyJWT, getAllStudent_Raw);
 router.route("/")

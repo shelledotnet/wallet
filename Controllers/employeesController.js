@@ -16,8 +16,6 @@ const getAllEmployees=async (req,res)=>{
   //.sort('name -price')order by name asc thenby price desc
   if (!employees)
     return res.status(204).json({ message: "No employees found." });
-  
-
   return res.status(StatusCodes.OK).json({
     data: employees,
     code: StatusCodes.OK,

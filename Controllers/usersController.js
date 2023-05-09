@@ -14,9 +14,15 @@ const { StatusCodes } = require("http-status-codes");
 
 const getAllUsers=async (req,res)=>{
     try{
-      const users=await User.find();
-    if(!users)return res.status(204).json({'message':'No users found.'});
-    res.json(users);  
+      const users = await User.find()
+        .select(
+          "-_id -__v -createdAt -updatedAt -password -refreshToken -refreshTokenActive -refreshTokenExpired -refreshTokenExpiredDate"
+        ) //select all fields excluding fields with prefix negative;;
+        .sort("createdAt"); // order by CreatedAt asc
+      //.sort('name -price')order by name asc thenby price desc
+      if (!users) return res.status(204).json({ message: "No users found." });
+
+      res.json(users);
     }
     catch(err){
        ErrorResponse(err, res);
@@ -27,7 +33,13 @@ const getAllUsers=async (req,res)=>{
 const getUserById=async (req,res)=>{
 if(!req?.params?.id)return res.status(400).json({"message":`User ID ${req.params.id} required`});
 try {
-    const user=await User.findOne({_id: req.params.id}).exec();
+    const user=await User.findOne({_id: req.params.id})
+    .select(
+          "-_id -__v -createdAt -updatedAt -password -refreshToken -refreshTokenActive -refreshTokenExpired -refreshTokenExpiredDate"
+        ) //select all fields excluding fields with prefix negative;;
+        .sort("createdAt") // order by CreatedAt asc
+      //.sort('name -price')order by name asc thenby price desc
+    .exec();
 if(!user){  //if employee doesnt exist
     return res.status(404).json({"message":`No user ID matches ${req.params.id}`});
 }
@@ -74,7 +86,13 @@ const updateUserPwd=async (req,res)=>{
             const hashedPwd=await bcrypt.hash(req?.body?.newpassword, 10); //encrypt an sort of 10 round
             user.password=hashedPwd;
            const result=await user.save();
-           res.json(result);
+           
+          return res.status(StatusCodes.OK).json({
+            data: {roles:result.roles,username:result.username,email:result.email},
+            code: StatusCodes.OK,
+            success: true,
+            ref: uuid(),
+          });
 
         }
         
@@ -90,10 +108,19 @@ const deleteUser=async (req,res)=>{
         if(!req?.params?.id)return res.status(400).json({'message':'Employee ID required'});
         try {
            const user=await User.findOne({_id: req.params.id}).exec();
-        if(!user)return res.status(204).json({"message":`No user ID matches ${req.params.id}`});
+        if(!user)return res.status(400).json({"message":`No user ID matches ${req.params.id}`});
         const result=await user.deleteOne({_id: req.params.id});
 
-        res.json(result); 
+         return res.status(StatusCodes.OK).json({
+           data: {
+             roles: result.roles,
+             username: result.username,
+             email: result.email,
+           },
+           code: StatusCodes.OK,
+           success: true,
+           ref: uuid(),
+         }); 
         } catch (err) {
              ErrorResponse(err, res);
         }

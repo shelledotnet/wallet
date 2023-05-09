@@ -4,7 +4,11 @@ const bcrypt = require("bcrypt");
 require("dotenv").config();
 const fsPromises = require("fs").promises;
 const path = require("path");
-const { HTTP_STATUS_CODE, HTTP_STATUS_DESCRIPTION } = require("../Global");
+const {
+  HTTP_STATUS_CODE,
+  HTTP_STATUS_DESCRIPTION,
+  ErrorResponse,
+} = require("../Global");
 const { StatusCodes } = require("http-status-codes");
 const { validationResult } = require("express-validator");
 const serialize = require("serialize-javascript");
@@ -88,13 +92,7 @@ const handleNewUser = async (req, res) => {
         });
       }
    }catch(err){
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      data: err.message,
-      code: StatusCodes.INTERNAL_SERVER_ERROR,
-      success: HTTP_STATUS_DESCRIPTION.FALSE,
-      message: HTTP_STATUS_DESCRIPTION.FAIL,
-      ref: guid,
-    });
+     ErrorResponse(err, res);
    }
 };
 //#endregion

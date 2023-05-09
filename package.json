@@ -12,9 +12,11 @@
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^5.1.0",
+    "bcryptjs": "^2.4.3",
     "chalk": "^4.1.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
+    "crypto-js": "^4.1.1",
     "date-and-time": "^2.4.1",
     "date-fns": "^2.29.3",
     "dotenv": "^16.0.3",
@@ -29,12 +31,14 @@
     "node-fetch": "^2.6.9",
     "nodemailer": "^6.8.0",
     "serialize-javascript": "^6.0.0",
+    "supervillains": "^3.1.0",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
     "mongoose": "^7.0.4",
     "morgan": "^1.10.0",
-    "nodemon": "^2.0.20"
+    "nodemon": "^2.0.20",
+    "states-us": "^1.0.2"
   },
   "nodemonConfig": {
     "restartable": "rs",

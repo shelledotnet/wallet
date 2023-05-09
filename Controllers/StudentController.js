@@ -3,10 +3,11 @@ require("dotenv").config(); //accessing the environment variables
 const {v4:uuid}=require('uuid');
 const { validationResult } = require("express-validator");
 //const knex=require("../Config/Conn");  //what comes back from require knex are functions 
-const dataSource = require("../Config/kbnex-cfg").development;  //what comes back from require knex are functions 
+const dataSource = require("../Config/kbnex-cfg").production;  //what comes back from require knex are functions 
 const knex=require("knex")(dataSource);  //what comes back from require knex are functions 
-const { HTTP_STATUS_CODE, HTTP_STATUS_DESCRIPTION } = require("../Global");
+const { HTTP_STATUS_CODE, HTTP_STATUS_DESCRIPTION , ErrorResponse } = require("../Global");
 const {StatusCodes}=require('http-status-codes');
+const usStates = require("states-us");
 const date = require("date-and-time");
 const nodemailer = require("nodemailer");
 const now  =date.addHours(new Date(),1);
@@ -109,7 +110,76 @@ let getcurrentuser = async (req, res) => {
   }
 };
 
+let getAllStudent_Raw_mssql = async (req, res) => {
+  const guid = uuid();
+  try {
+    //const users = await knex("tbl_students").select("title", "band", "venue","price")
+    //.limit(2).first().distinct();
+    //const query=await knex("book").select(knex.raw("COUNT(*) as BookCount"));
+    //const query=await knex("book").knex.raw("select price where id=2"));
+    //mysqld  --defaults-file="C:\ProgramData\MySQL\MySQL Server 8.0\my.ini" --standalone --console
+    const users = await knex.raw("select * from [dbo].[User]");
+   
+    console.log(users);
+    console.log(`checking the loged in user ${req.user}${req.roles}`);
 
+    if (users.length !== 0) {
+      await audEvents(
+        `Response:${req.method}\t${serialize(users)}\t ${
+          req.baseUrl + req.url
+        }`,
+        "Log",
+        guid
+      );
+      return res.status(StatusCodes.OK).json({
+        count: users.length,
+        data: users.length > 1 ? users : users[0],
+        code: StatusCodes.OK,
+        success: true,
+        ref: guid,
+      });
+    }
+    await audEvents(
+      `NOT_FOUND:${req.method}\t records doesn't exist\t /api/v1${req.url})}`,
+      "Log",
+      guid
+    );
+    return res.status(StatusCodes.NOT_FOUND).json({
+      data: "student doesn't exist",
+      code: StatusCodes.NOT_FOUND,
+      success: false,
+      ref: guid,
+    });
+  } catch (err) {
+    await audEvents(
+      `Error:${req.method}\t${serialize(err)} ${serialize(err.message)}\t ${
+        req.baseUrl + req.url
+      }`,
+      "Log",
+      guid
+    );
+   
+    ErrorResponse(err,res);
+  }
+};
+
+
+
+let getUsState =  (req,res) => {
+  const guid = uuid();
+  try {
+    return res.status(StatusCodes.OK).json({
+      count: usStates.default.length,
+      result:usStates,
+      data: usStates.default.length >= 1 ? usStates.default.map(x => x.name) : "no state",
+      code: StatusCodes.OK,
+      success: true,
+      ref: guid,
+    });
+  } catch (error) {
+    
+  }
+}
 
 let getAllStudent = async (req, res) => {
   const guid = uuid();
@@ -249,8 +319,8 @@ let createStudent = async (req, res) => {
    const errors = validationResult(req);
    if (!errors.isEmpty()) {
     await audEvents(
-      `BAD_REQUEST:${req.method}\t${serialize(errors)}\t /api/v1/students${
-        req.url
+      `BAD_REQUEST:${req.method}\t${serialize(errors)}\t ${
+       req.baseUrl + req.url
       }`,
       "Log",
       GUID
@@ -314,7 +384,7 @@ let createStudent = async (req, res) => {
   await audEvents(
     `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
       err.message
-    )}\t /api/v1/students${req.url})}`,
+    )}\t ${req.baseUrl + req.url})}`,
     "Log",
     GUID
   );
@@ -333,8 +403,8 @@ let createStudent_raw = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
    await audEvents(
-     `BAD_REQUEST:${req.method}\t${serialize(errors)}\t /api/v1/students${
-       req.url
+     `BAD_REQUEST:${req.method}\t${serialize(errors)}\t ${
+      req.baseUrl + req.url
      }`,
      "Log",
      GUID
@@ -351,7 +421,7 @@ let createStudent_raw = async (req, res) => {
    await audEvents(
      `Request:${req.method}\tHeader:${serialize(req.headers)}\tBody${serialize(
        req.body
-     )}\t ${req.baseUrl + req.url}`,
+     )}\t url: ${req.baseUrl + req.url}`,
      "Log",
      GUID
    );
@@ -378,7 +448,7 @@ let createStudent_raw = async (req, res) => {
     //this function return promise which should have await operator
     //it will return both the field and actual raw data
     if (created.affectedRows === 1) {
-      audEvents(
+     await audEvents(
         `Response:Header:${serialize(res.headers)}\tBody:${serialize(
           result
         )}\tstudent created successfully ${StatusCodes.CREATED}`,
@@ -407,8 +477,8 @@ let createStudent_raw = async (req, res) => {
   } catch (err) {
    await audEvents(
      `INTERNAL_SERVER_ERROR:${req.method}\t message:${serialize(
-       err.message
-     )}\t /api/v1/students${req.url})}`,
+       err + err.message
+     )}\t url:${req.baseUrl + req.url})}`,
      "Log",
      GUID
    );
@@ -427,8 +497,8 @@ let getStudentById = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
    await audEvents(
-     `BAD_REQUEST:${req.method}\t${serialize(errors)}\t /api/v1/students${
-       req.url
+     `BAD_REQUEST:${req.method}\t${serialize(errors)}\t url:::${
+      req,baseUrl + req.url
      }`,
      "Log",
      guid
@@ -443,9 +513,9 @@ let getStudentById = async (req, res) => {
   }
   try {
    await audEvents(
-     `Request:Header:${serialize(req.headers)}\t${req.method}\t${serialize(
+     `Request:Header:${serialize(req.headers)}\t methodverb:${req.method}\t${serialize(
        req.params
-     )}\t${req.baseUrl + req.url}`,
+     )}\t url:${req.baseUrl + req.url}`,
      "Log",
      guid
    );
@@ -458,7 +528,7 @@ let getStudentById = async (req, res) => {
       audEvents(
         `Response:${req.method}\t id find was successfull-${serialize(
           result
-        )}\t url:/api/v1/students${req.url}}`,
+        )}\t url:${req.baseUrl + req.url}}`,
         "Log",
         guid
       );
@@ -472,7 +542,7 @@ let getStudentById = async (req, res) => {
         });
     }
    await audEvents(
-     `NOT_FOUND:${req.method}\t id ${id} doesn't exist\t /api/v1/students${req.url})}`,
+     `NOT_FOUND:${req.method}\t id ${id} doesn't exist\t url:${req.baseUrl + req.url})}`,
      "Log",
      guid
    );
@@ -851,10 +921,14 @@ const fetchApi = async (req, res) => {
     });
   }
 };
+
+
 //#endregion
 
 module.exports = {
+  getUsState,
   getAllStudent,
+  getAllStudent_Raw_mssql,
   getcurrentuser,
   getAllStudent_Raw,
   getTodoId_Raw,
@@ -864,107 +938,189 @@ module.exports = {
   getStudentById_Raw,
   deleteStudentById_Raw,
   sendMail,
-  fetchApi
+  fetchApi,
 };
 
 //#region JS Practice
-const dns = require('dns');
+
+//**********
 const os = require('os');
 const { format } = require("path");
 //console.log(os.hostname());
 //console.log(os.userInfo().username);
+//**********
 //setInterval(function(){console.log('loving you fatimah')},1000)
+//**********
+//console.log("loving you\n".repeat(5));
+//**********
+const dns = require("dns");
 dns.lookup('pluralsight.com',(err,address)=>{
   if(err){
-    //console.log(err);
+   // console.log(`unable toget the ip address ${err.message}`);
   }else{
     //console.log(address);
   }
   
 });
-
-let words = "Franklin Roosevelt Roosevelt kemi Roosevelt";
+//**********
+let words = "Franklin Roosevelt Roosevelt Donald Roosevelt";
 let chematch = /(\w+)\1\1/gi;
 let replceMatch = /roosevelt/gi;
+//console.log(words.replace(/donald/gi, "Obama"));
 //console.log(words.replace(replceMatch,"President"));
-//console.log('Node'.padEnd(8,'*'));
+//**********
+//console.log('Node'.padEnd(10,'*'));
+//**********
 const fruitDrink = ["Banana", "Orange", "Apple", "Mango"];
 fruitDrink.sort()
 //console.log(fruitDrink.reverse());
-const points = [40, 100, 1, 5, 25, 10];
+//*********** 
+const points = [40, 100, 8, 5, 25, 10];
 //console.log(Math.min.apply(null,points));
+//******** 
 const persons = {"firstname":"seyi"};
 //console.log(persons["firstname"]);
+//**********
 let password = "821g9898982&";
 let checkPass = /(\w{3,6})(\d{1})(\W{1})/; //3 to 6 alpahnymeric characters , at least 1 number , atleast 1 non alphanumeric
 //console.log(checkPass.test(password));
+//**********
 const fruits = ["Banana", "Orange", "Apple", "Mango"];
 let fruit = "";
 for(let i = 0 ; i < fruits.length ; i++){
    fruit += fruits[i] + ",";
 }
 //console.log(fruit);
-let quote = "aabes blind mice. deh";
+//**********
 let biginWith = /^abe/i;
+let quot = "abes blind mice. deh";
+//console.log(biginWith.test(quot));
+//**********
 let endWith = /deh$/i;
-let includes_alphanumeric = /[A-Za-z0-9_]+/gi;  // \w+
-let exclude_alphanumeric = /[^A-Za-z0-9_]+/gi;  // \W
-let includeDigit = /[0-9]/g;//\d
-let excludeDigit = /[^0-9]/g;//\D
+let quote = "aabes blind mice. deh";
+//console.log(endWith.test(quote));
+//**********
+let includes_allinthebracket = /[A-Za-z0-9_]+/gi;  // \w+
+let log = "@#$$";
+//console.log(includes_allinthebracket.test(log));
+//**********
+let exclude_allinthebracket = /[^A-Za-z0-9_]+/gi;  // \W
+let logi = "@#$$"; 
+//console.log(exclude_allinthebracket.test(logi));
+//**********
+let includeDigit = /[0-9]/g;//\d   must include numbers not only alphabet
+let login = "nbgf34"; 
+//console.log(includeDigit.test(login));
+//**********
+let excludeDigit = /[^0-9]/g;//\D  must include alphabet not only numbers
+let us = "nbgf"; 
+//console.log(excludeDigit.test(us));
+//**********
 let includeWhiteSpace = /\s/g;
+let use = "ade@3445";
+//console.log(includeWhiteSpace.test(use));
+//**********
 let excludeWhiteSpace = /\S/g;
-let digitEnd = /[0-9]$/
-let username = "ade@3445"
+let user = "ade@3445";
+//console.log(excludeWhiteSpace.test(user));
+//**********
+let digitRegExp = /^\d+$/;  //only digits
+let str = "233445"
+//console.log(digitRegExp.test(str));
+//**********
+let non_digitRegExp = /\d+$/;  //only non-digits
+let st = "ghytrr@#$89"
+//console.log(non_digitRegExp.test(str));
+//**********
+let digitEnd = /[0-9]$/;
+let username = "ade@3445";
 //console.log(digitEnd.test(username));
-//console.log(includes_alphanumeric.test(username));
-// console.log(biginWith.test(quote));
-// console.log(endWith.test(quote));
-let quoteSampleNumber = "aaaaaaaaaBlue=berry3141592653sare @delicious";
-let quoteSample = "Bewa it correct not tried Free";
+//**********
+let quoteSampleNumber = "aaaaaaaaaBlueberry3141592653sare +@delicious";
+let ifnotfoundinRegExs_True = /[^A-Za-z0-9_ @]/gi;
+//console.log(ifnotfoundinRegExs_True.test(quoteSampleNumber));
+//*******************
 let charMatch = /[!@#$%^;&*()+= ]/i;
-let cat = "cat";
-let gre = /[^A-Za-z0-9_ @]/gi;
-let wiiMatch = /\W /;
-let digitMatch = /[0-9]/g;//\d
-let nondigitMatch = /[^0-9]/g;//\D
-let bewaRegex = /^bewa/i;
-let storyRegex = /free$/i;
-let getMatch = /[a-z]/i
-let matchNum = /[h-s2-6]/i
-let notVowels = /[^aeiou0-9]/
-//console.log(quoteSampleNumber.match(nondigitMatch).length);
-//console.log(gre.test(quoteSampleNumber));
+let foundmatch = "asdrre!";
+//console.log(charMatch.test(foundmatch));  //found match true
+//*******************
+let digitMatch = /[0-9]/g;//\d   //require number else false
+let num = "nb";
+//console.log(digitMatch.test(num));
+//***********
+let nondigitMatch = /[^0-9]/g;//\D  //require aphbet else false
+let nums = "122";
+//console.log(nondigitMatch.test(nums));
+//***********
+let bewaRegex = /^bewa/i;  //must startwith
+let be = "op";
+//console.log(bewaRegex.test(be));
+//***********
+let storyRegex = /free$/i;  //must endwith 
+let ber = "opfree";
+//console.log(storyRegex.test(ber));
+//***********
+let getMatch = /[a-z]/i;  //contain only alphabet a-z
+let er = "opfree";
+//console.log(storyRegex.test(er));
+//***********
+let matchNum = /[h-s2-6]/i;
+let wor = "ytr"
+//console.log(matchNum.test(wor));
+//***********
+let notVowels = /[^aeiou0-9]/i;  //words not include the regex
+let word = "ae"
+//console.log(notVowels.test(word));
+//***********
 const person = { firstName: "John", lastName: "Doe" };
 person.age = 45 ;
+//console.log(person);
+//***********
 const cars = ["Saab", "Volvo", "BMW"];
 cars.push("Toyota");
 cars.unshift("Daewoo");
 cars.pop();
-cars.unshift();
-const dates = new Date();
-//console.log(dates.getDate().toLocaleString());
-//console.log(123e-5);
+//cars.unshift();
+//console.log(cars);
+//*********
+//console.log(dateCreated());
+ function dateCreated() {
+   let d = new Date();
+   let yr = d.getFullYear();
+   let mm = d.getMonth() + 1; //month in javascript start from o index
+   let dd = d.getDate(); // this return number of day in the month
+   return `${yr}-${mm}-${dd}`;
+ }
+//*********
+//console.log(123e-5);  // 123 x 10^-5 
+//console.log(123e5);  // 123 x 10^5 
+//*********
 //console.log(myFunction(4, 3)); // Function is called, return value will end up in x
 function myFunction(a, b) {
   return a * b; // Function returns the product of a and b
 }
+//*********
 let texts = "Apple";
-const textsRegex = /ap{2}le/i;
+const textsRegex = /ap{2}le/i;  //p is repeted twice
 //console.log(textsRegex.test(texts));
+//*********
 let numb = 5;
 let text = numb.toString();
 //console.log(text.padEnd(4, "0"));
-//console.log(texts[9]);
-// console.log(text.slice(-12));
-// console.log(text.substring(7, 13));
-// console.log(text.replace(/apple/gi,'mango'));
-//console.log("loving you\n".repeat(5));
+//*********
+let tex = "235135245e53e98709";
+/* console.log(tex[9]);  //index stats from 0
+console.log(tex.slice(-12));
+console.log(tex.slice(5));
+console.log(tex.substring(7, 13)); */
+//*********
+
 fs.readFile('Log/20230108.txt','utf8',(err,data)=>{
   if(err)throw err
   //console.log(data);
   //console.log('read complete');
 })
-
+//********** 
 process.on('uncaughtexception',err => {
   console.log(`thera was an uncaught error:- ${err}`);
   process.exit(1);
